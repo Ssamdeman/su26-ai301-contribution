@@ -1,16 +1,16 @@
 # Contribution [#]: [Issue Title]
 
-**Contribution Number:** [1 / 2 / 3]  
-**Student:** [Your Name]  
-**Issue:** [GitHub issue link]  
-**Status:** [Phase I / Phase II / Phase III / Phase IV] [In Progress / Complete]
+**Contribution Number:** 1  
+**Student:** Samuel Damon
+**Issue:** https://github.com/ggml-org/llama.cpp/issues/14909
+**Status:** Phase I
 
 ---
 
 ## Why I Chose This Issue
 
-[1-2 paragraphs explaining why this issue interests you, how it matches your skills/learning goals, what you hope to learn]
-
+I chose this issue because llama.cpp is one of the most impactful open source projects in the AI space — it enables local LLM inference for millions of users. Contributing to something with real-world value matters to me, and this project is exactly that.
+I want to expand my knowledge from high-level AI into lower-level systems programming. Implementing a missing backend op means working in C/C++, understanding how inference engines execute operations, and writing code that directly affects performance. This is the kind of challenge I'm looking for — practical, technical, and meaningful.
 ---
 
 ## Understanding the Issue
