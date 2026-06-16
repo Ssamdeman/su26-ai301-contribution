@@ -1,0 +1,45 @@
+Testing 2 devices
+
+Backend 1/2: CUDA0
+  Device description: NVIDIA GeForce RTX 5060 Laptop GPU
+  Device memory: 8150 MB (7043 MB free)
+
+  COL2IM_1D(type=f32,K=16,OC=32,T_in=197,s0=8,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f32,K=4,OC=3,T_in=7,s0=2,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f32,K=1,OC=5,T_in=13,s0=1,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f32,K=6,OC=4,T_in=11,s0=3,p0=1): not supported [CUDA0] 
+  COL2IM_1D(type=f32,K=2,OC=3,T_in=9,s0=3,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f32,K=5,OC=4,T_in=11,s0=2,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f32,K=8,OC=4,T_in=13,s0=4,p0=2): not supported [CUDA0] 
+  COL2IM_1D(type=f32,K=4,OC=3,T_in=1,s0=2,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f32,K=16,OC=1,T_in=197,s0=8,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f32,K=1,OC=5,T_in=13,s0=3,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f32,K=8,OC=2,T_in=3,s0=2,p0=5): not supported [CUDA0] 
+  COL2IM_1D(type=f16,K=16,OC=32,T_in=197,s0=8,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f16,K=4,OC=3,T_in=7,s0=2,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f16,K=1,OC=5,T_in=13,s0=1,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f16,K=6,OC=4,T_in=11,s0=3,p0=1): not supported [CUDA0] 
+  COL2IM_1D(type=f16,K=2,OC=3,T_in=9,s0=3,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f16,K=5,OC=4,T_in=11,s0=2,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f16,K=8,OC=4,T_in=13,s0=4,p0=2): not supported [CUDA0] 
+  COL2IM_1D(type=f16,K=4,OC=3,T_in=1,s0=2,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f16,K=16,OC=1,T_in=197,s0=8,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f16,K=1,OC=5,T_in=13,s0=3,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=f16,K=8,OC=2,T_in=3,s0=2,p0=5): not supported [CUDA0] 
+  COL2IM_1D(type=bf16,K=16,OC=32,T_in=197,s0=8,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=bf16,K=4,OC=3,T_in=7,s0=2,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=bf16,K=1,OC=5,T_in=13,s0=1,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=bf16,K=6,OC=4,T_in=11,s0=3,p0=1): not supported [CUDA0] 
+  COL2IM_1D(type=bf16,K=2,OC=3,T_in=9,s0=3,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=bf16,K=5,OC=4,T_in=11,s0=2,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=bf16,K=8,OC=4,T_in=13,s0=4,p0=2): not supported [CUDA0] 
+  COL2IM_1D(type=bf16,K=4,OC=3,T_in=1,s0=2,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=bf16,K=16,OC=1,T_in=197,s0=8,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=bf16,K=1,OC=5,T_in=13,s0=3,p0=0): not supported [CUDA0] 
+  COL2IM_1D(type=bf16,K=8,OC=2,T_in=3,s0=2,p0=5): not supported [CUDA0] 
+  0/0 tests passed
+  Backend CUDA0: [1;32mOK[0m
+Backend 2/2: CPU
+  Skipping CPU backend
+2/2 backends passed
+[1;32mOK[0m
