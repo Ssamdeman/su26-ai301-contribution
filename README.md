@@ -3,7 +3,7 @@
 **Contribution Number:** 1
 **Student:** Samuel Damon
 **Issue:** [ggml-org/llama.cpp#14909](https://github.com/ggml-org/llama.cpp/issues/14909)
-**Status:** Phase II Completed
+**Status:** Phase III In Progress
 
 ## Why I Chose This Issue
 
@@ -43,7 +43,7 @@ On current `master`, every `COL2IM_1D` case is skipped on CUDA. The harness prin
 | Build config | `-DGGML_CUDA=ON` |
 
 **Challenges and fixes:**
-- **`cl.exe not found` / missing `stdbool.h` from PowerShell.** The CUDA build only succeeds from the **x64 Native Tools Command Prompt for VS 2022**, which runs `vcvars64.bat` to put MSVC on the path. A normal shell fails. Fix: always build/test from that prompt.
+- **`cl.exe not found` / missing `stdbool.h` from PowerShell.** The CUDA build only succeeds from the **x64 Native Tools Command Prompt for VS 2022**, which runs `vcvars64.bat` to put MSVC on the path. A normal shell fails. Fix: always build/test from that prompt. (Confirmed again in Phase III — a PowerShell window silently reused the old environment and reproduced this error.)
 - **`docs/ops.md` cannot be trusted for op selection.** The support table lags reality. Ground truth is the test harness. The target was chosen by running `test-backend-ops` and dumping live support to `cuda_support.csv`, then re-verified against open/merged GitHub PRs.
 
 ### Steps to Reproduce
@@ -64,7 +64,7 @@ On current `master`, every `COL2IM_1D` case is skipped on CUDA. The harness prin
    build\bin\test-backend-ops.exe -o COL2IM_1D
    ```
 5. **Expected (if implemented):** every case prints `OK`, ending `33/33 tests passed`.
-6. **Observed:** all 33 cases print `not supported [CUDA0]`, ending `0/0 tests passed`.
+6. **Observed (on master):** all 33 cases print `not supported [CUDA0]`, ending `0/0 tests passed`.
 
 > **Reading the result correctly:** the harness prints `Backend CUDA0: OK` even when the op is missing, because unsupported cases are *skipped*, not *failed*. The real signal is the per-line `not supported [CUDA0]` text and the `0/0 tests passed` count — **not** the final `OK`.
 
@@ -100,10 +100,10 @@ Using the UMPIRE framework (adapted):
 5. Add `#include "col2im_1d.cuh"` and a `case GGML_OP_COL2IM_1D:` to the op dispatch in `ggml-cuda.cu`.
 6. Add `case GGML_OP_COL2IM_1D:` to the CUDA `supports_op` switch. **Edit only this case** — keep the diff surgical (the POOL_1D PR #22297 was flagged for an accidental `case` fall-through that changed unrelated ops).
 
-**Implement:** Phase III. Code will land on https://github.com/Ssamdeman/llama.cpp/tree/cuda-col2im1d-op *(placeholder — no kernel written yet).*
+**Implement:** Phase III — in progress. Code on https://github.com/Ssamdeman/llama.cpp/tree/cuda-col2im1d-op
 
 **Review:**
-- Self-review against `CONTRIBUTING.md` before opening the PR.
+- Self-review against `CONTRIBUTING.md` before opening the PR. (Read in Phase III — key constraint: the project does **not** accept predominantly AI-generated code; AI is assistive only, human authors the majority, and every line must be explainable. CPU-first, CUDA-in-follow-up is the sanctioned pattern, which is exactly this PR.)
 - Commit / PR title convention: lowercase, colon-scoped — e.g. `cuda : add col2im_1d op` (matches merged CPU PR `ggml : add GGML_OP_COL2IM_1D`).
 - **AI-usage disclosure is mandatory** (both prior CUDA op PRs #22297/#21361 included one; the PR template requires it).
 - Regenerate `docs/ops.md` **with the project's script**, not by hand (a reviewer rejected a manual docs edit on #22297). Locate the script via `CONTRIBUTING.md` / the `update-ops-docs` CI job.
@@ -114,42 +114,62 @@ Using the UMPIRE framework (adapted):
 
 ## Testing Strategy
 
-The op is verified entirely through ggml's built-in backend test harness, which auto-compares CUDA output against the CPU reference. (Detailed results filled in Phase III.)
+The op is verified entirely through ggml's built-in backend test harness, which auto-compares CUDA output against the CPU reference. The 33 `COL2IM_1D` cases ship with the op (added by the CPU PR #24206), so no new test cases are needed — the goal is to make the existing ones pass.
 
 ### Unit Tests
 - *Test case 1:* `test-backend-ops -o COL2IM_1D` — all 33 cases (`f32`/`f16`/`bf16` × kernel/stride/padding combos) must pass.
 - *Test case 2:* edge params present in the set — `K=1` (degenerate kernel), `T_in=1` (minimal input), `p0=5` with small input (padding ≥ input).
-- *Test case 3:* [Phase III]
 
 ### Integration Tests
-- Full `test-backend-ops` run — no regressions in other ops.
-- [Phase III]
+- Full `test-backend-ops` run — no regressions in other ops. (Pending once the op executes.)
 
 ### Manual Testing
-[Phase III — to be filled during implementation.]
+Not yet — blocked on the backend-load issue below. The kernel compiles and links; it has not yet executed against the harness.
 
 ## Implementation Notes
 
-### Week [X] Progress
-[Phase III — to be filled during implementation.]
+### Week 3 Progress
+
+**What I built (all on branch `cuda-col2im1d-op`):**
+- New files `ggml/src/ggml-cuda/col2im_1d.cu` and `col2im_1d.cuh` — output-centric gather kernel templated over `float`/`half`/`nv_bfloat16`, plus the host wrapper that reads `s0`/`OC`/`p0` from `op_params` and the tensor dims from `ne[]`.
+- Wired into `ggml-cuda.cu`: include, dispatch `case GGML_OP_COL2IM_1D`, and a standalone `supports_op` case returning `true`.
+- Verified the kernel's index math against the CPU `_impl` line-by-line before building (src/dst offsets, loop bounds, `K = ne[0]/OC` derivation all match the reference exactly).
+
+**Status:** Code compiles and links cleanly (`bin\ggml-cuda.dll` rebuilds). It does **not yet run** — see blocker.
+
+**Current blocker (actively debugging):**
+The harness prints `load_backend: failed to find ggml_backend_init in ...\build\bin\ggml-cuda.dll` at startup, and every CUDA op — not just `COL2IM_1D` — reports `not supported [CUDA0]`. So the CUDA backend DLL isn't loading its entry point; the kernel never gets a chance to run regardless of correctness. This is a build/loader issue, not (as far as verified) a logic issue.
+
+Contributing factors found so far:
+- Build environment kept silently falling back to PowerShell (no MSVC on PATH) → fixed by strictly using the Native Tools cmd.
+- A stray duplicate `ggml-cuda.cu` exists in the repo root (the real source is under `ggml/src/ggml-cuda/`); needs cleanup.
+- `ninja: no work to do` repeatedly skipped rebuilds, so early test runs used a stale DLL.
+
+**Next steps:**
+1. Diagnose the `ggml_backend_init` load failure — confirm the exe and `ggml-cuda.dll` come from the same coherent build (suspect a mismatched/partial build tree).
+2. Full clean rebuild of the whole project (`--clean-first`, not a single target) so exe + all backend DLLs are consistent.
+3. Confirm a known op (e.g. `ADD`) loads on CUDA; if it does, re-run `-o COL2IM_1D`.
+4. Once executing: iterate kernel to `33/33`, then full-suite regression, then regen `docs/ops.md` via the script.
 
 ### Code Changes
-- Files modified: [Phase III]
-- Key commits: [Phase III]
-- Approach decisions: [Phase III]
+- **Files added:** `ggml/src/ggml-cuda/col2im_1d.cu`, `ggml/src/ggml-cuda/col2im_1d.cuh`
+- **Files modified:** `ggml/src/ggml-cuda/ggml-cuda.cu` (include + dispatch case + supports_op case)
+- **Branch:** https://github.com/Ssamdeman/llama.cpp/tree/cuda-col2im1d-op
+- **Approach decisions:** output-centric gather over scatter+atomics (clean f16/bf16 path); single `<typename T>` template matching the CPU dispatch; fp32 accumulation for precision on half types.
 
 ## Pull Request
 
-**PR Link:** [Phase III]
-**PR Description:** [Phase III — much of the Solution Approach above will be adapted]
-**Maintainer Feedback:** [Phase III/IV]
-**Status:** Not yet submitted (Phase II complete; implementation begins in Phase III)
+**PR Link:** Not yet submitted — opens after the op passes the harness.
+**PR Description:** [Draft in Phase IV — adapted from Solution Approach above.]
+**Maintainer Feedback:** [Phase IV]
+**Status:** Implementation in progress; blocked on backend-load issue, actively debugging.
 
 ## Learnings & Reflections
 
-[Phase IV — to be filled at the end.]
+[Full reflection in Phase IV.] Early notes: most of the time so far went not into the kernel logic (which verified cleanly against the CPU reference on the first pass) but into Windows build-environment friction — wrong shell, stale objects, build-tree inconsistency. The lesson carried forward: confirm the build environment and a coherent rebuild *before* trusting a test result, and check that a known-good op loads before blaming your own code.
 
 ### Resources Used
 - llama.cpp `docs/ops.md` and the `test-backend-ops` harness (ground-truth op support)
+- `CONTRIBUTING.md` (AI policy, commit conventions, CPU-first rule)
 - CPU reference PR [#24206](https://github.com/ggml-org/llama.cpp/pull/24206) and the existing CUDA `im2col.cu`
 - Prior CUDA op PRs [#22297](https://github.com/ggml-org/llama.cpp/pull/22297), [#21361](https://github.com/ggml-org/llama.cpp/pull/21361) (review-convention and AI-disclosure lessons)
