@@ -3,7 +3,7 @@
 **Contribution Number:** 1
 **Student:** Samuel Damon
 **Issue:** [ggml-org/llama.cpp#14909](https://github.com/ggml-org/llama.cpp/issues/14909)
-**Status:** Phase IV Complete — PR submitted, awaiting review
+**Status:** Phase IV — Iterating (PR open, addressing review)
 
 ## Why I Chose This Issue
 
@@ -105,9 +105,17 @@ Output-centric gather over scatter+atomics (clean f16/bf16 path); single `<typen
 ## Pull Request
 
 **PR Link:** [ggml-org/llama.cpp#25151](https://github.com/ggml-org/llama.cpp/pull/25151)
-**Summary:** Implements `GGML_OP_COL2IM_1D` on the CUDA backend — the inverse of IM2COL and the missing counterpart to the merged CPU reference (#24206). Output-centric gather kernel templated over f32/f16/bf16 with fp32 accumulation. Passes 33/33 `test-backend-ops` cases; full regression suite clean (12868/12868). Diff is 5 files, +126/−1.
-**Maintainer Feedback:** None yet — awaiting initial review.
-**Status:** Awaiting review.
+**Summary:** Implements `GGML_OP_COL2IM_1D` on the CUDA backend — the inverse of IM2COL and the missing counterpart to the merged CPU reference (#24206). Output-centric gather kernel templated over f32/f16/bf16 with fp32 accumulation. Passes 33/33 `test-backend-ops` cases; full regression suite clean (12868/12868).
+
+**Maintainer Feedback (Round 1 — @am17an, contributor):**
+- **Removed docs from the PR.** Reviewer asked to drop the `docs/ops.md` and `docs/ops/CUDA.csv` changes. Reverted both so the PR touches only the three CUDA source files; force-pushed. This also cleared a merge conflict that was in `docs/ops.md`.
+- **int64 cast (accepted).** Cast the thread index to `int64_t` before the block-stride multiply, so the arithmetic can't overflow 32 bits on a large grid.
+- **Dropped a division in the loop bound (accepted).** Replaced `t_in <= t_abs / s0` with `t_in * s0 <= t_abs` (moving `s0` to the right-hand side), removing a per-thread integer division. Verified the bound is mathematically equivalent and re-ran the tests — still 33/33.
+- **`fast_div` suggestion (open).** Reviewer noted the `i / T_out` and `i % T_out` could use ggml's `fast_div` helper. Left a comment on that thread; still discussing whether it's worth the added complexity for this kernel.
+
+**AI disclosure note:** An automated bot flagged the PR for AI-usage disclosure. Clarified the disclosure to state plainly that I authored all code and used AI assistively (architecture explanation, verifying my layout assumptions, and debugging help on my own code).
+
+**Status:** Iterating — Round 1 feedback addressed (2 of 3 accepted, 1 in discussion), awaiting next review.
 
 ## Learnings & Reflections
 
