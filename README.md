@@ -3,7 +3,7 @@
 **Contribution Number:** 1
 **Student:** Samuel Damon
 **Issue:** [ggml-org/llama.cpp#14909](https://github.com/ggml-org/llama.cpp/issues/14909)
-**Status:** Phase IV — Iterating (PR open, addressing review)
+**Status:** Phase IV Complete — PR approved (2 reviews); superseded by an independently-merged CUDA implementation
 
 ## Why I Chose This Issue
 
@@ -101,21 +101,24 @@ Early Phase III runs showed `0/0 not supported [CUDA0]` even after the wiring wa
 
 ### Approach decisions
 Output-centric gather over scatter+atomics (clean f16/bf16 path); single `<typename T>` template matching the CPU dispatch; fp32 accumulation for precision on half types; sibling `im2col` left untouched for a minimal, reviewable diff.
-
 ## Pull Request
 
 **PR Link:** [ggml-org/llama.cpp#25151](https://github.com/ggml-org/llama.cpp/pull/25151)
 **Summary:** Implements `GGML_OP_COL2IM_1D` on the CUDA backend — the inverse of IM2COL and the missing counterpart to the merged CPU reference (#24206). Output-centric gather kernel templated over f32/f16/bf16 with fp32 accumulation. Passes 33/33 `test-backend-ops` cases; full regression suite clean (12868/12868).
 
 **Maintainer Feedback (Round 1 — @am17an, contributor):**
-- **Removed docs from the PR.** Reviewer asked to drop the `docs/ops.md` and `docs/ops/CUDA.csv` changes. Reverted both so the PR touches only the three CUDA source files; force-pushed. This also cleared a merge conflict that was in `docs/ops.md`.
+- **Removed docs from the PR.** Reviewer asked to drop the `docs/ops.md` and `docs/ops/CUDA.csv` changes. Reverted both so the PR touches only the CUDA source files; force-pushed. This also cleared a merge conflict in `docs/ops.md`.
 - **int64 cast (accepted).** Cast the thread index to `int64_t` before the block-stride multiply, so the arithmetic can't overflow 32 bits on a large grid.
 - **Dropped a division in the loop bound (accepted).** Replaced `t_in <= t_abs / s0` with `t_in * s0 <= t_abs` (moving `s0` to the right-hand side), removing a per-thread integer division. Verified the bound is mathematically equivalent and re-ran the tests — still 33/33.
-- **`fast_div` suggestion (open).** Reviewer noted the `i / T_out` and `i % T_out` could use ggml's `fast_div` helper. Left a comment on that thread; still discussing whether it's worth the added complexity for this kernel.
+- **`fast_div` suggestion (discussed, not required).** Reviewer noted `i / T_out` and `i % T_out` could use ggml's `fast_div` helper. I explained the 32-bit-index tradeoff and chose to keep the safe 64-bit path; @am17an agreed it wasn't required for this PR.
 
-**AI disclosure note:** An automated bot flagged the PR for AI-usage disclosure. Clarified the disclosure to state plainly that I authored all code and used AI assistively (architecture explanation, verifying my layout assumptions, and debugging help on my own code).
+**Approvals:** The PR received **2 approving reviews** (@am17an and @JohannesGaesler). JohannesGaesler noted the implementation "seems logically correct."
 
-**Status:** Iterating — Round 1 feedback addressed (2 of 3 accepted, 1 in discussion), awaiting next review.
+**Outcome — superseded.** During the final review cycle, CI began failing with duplicate `case GGML_OP_COL2IM_1D` labels. Investigation showed that an independent CUDA implementation of the same op had been merged into upstream `master` in the interim (upstream now ships `ggml/src/ggml-cuda/col2im-1d.cu` / `.cuh`, hyphenated, vs. my underscored `col2im_1d.cu`). My wiring collided with the already-merged cases, which is what broke the build. My PR is therefore redundant and will be closed as superseded — a normal outcome when multiple contributors independently target the same open issue.
+
+**AI disclosure note:** An automated bot flagged the PR for AI-usage disclosure. I clarified the disclosure to state plainly that I authored all code myself and used AI assistively only (architecture explanation, verifying layout assumptions, and debugging help on my own code).
+
+**Status:** Approved (2 reviews), unmerged — superseded by an independently-merged implementation. Closing the PR and moving to a second contribution.
 
 ## Learnings & Reflections
 
@@ -132,3 +135,4 @@ Output-centric gather over scatter+atomics (clean f16/bf16 path); single `<typen
 - The `update-ops-docs` CI workflow and `scripts/create_ops_docs.py` (docs regeneration)
 - Prior CUDA op PRs [#22297](https://github.com/ggml-org/llama.cpp/pull/22297), [#21361](https://github.com/ggml-org/llama.cpp/pull/21361) (review-convention and AI-disclosure lessons)
 
+**On being superseded.** My PR earned two approvals but was ultimately superseded by another contributor's implementation that merged first — a real and common open-source outcome I hadn't anticipated. The lesson: popular issues attract parallel work, and rebasing early and often against upstream surfaces these collisions sooner. It doesn't diminish the work — I completed the full contribution cycle (reproduce → implement → review → iterate → approval), which was the goal. For my next contribution I'll check for concurrent open PRs on the exact op before starting, and keep my branch rebased on upstream throughout.
