@@ -3,7 +3,8 @@
 **Contribution Number:** 2
 **Student:** Samuel Damon
 **Issue:** [ggml-org/llama.cpp#14909](https://github.com/ggml-org/llama.cpp/issues/14909)
-**Status:** Phase III Complete — implemented and tested locally (all target types pass, full regression clean); PR pending
+**Pull Request:** [ggml-org/llama.cpp#26642](https://github.com/ggml-org/llama.cpp/pull/26642)
+**Status:** Phase IV In Progress — PR submitted and open; awaiting review (first maintainer comment received, response in progress)
 
 > **Note on the issue number:** #14909 is an *umbrella* issue ("Implement missing ops from backends") — each contributor picks one op per PR. This is the same issue as my Contribution #1; what differs is the **op** (Contribution #1 was `COL2IM_1D`, this is `REPEAT`), not the issue.
 
@@ -99,7 +100,7 @@ The bitwise kernels and launchers are templated on the **payload size**, not the
 The op is verified through ggml's built-in backend test harness, which auto-compares CUDA output against the CPU reference. The `i32` / `i16` / `bf16` cases already ship with the op, so no new test cases were needed — the goal was to make the previously-skipped cases pass.
 
 ### Results
-- **Primary:** `test-backend-ops.exe -o REPEAT` → all `i32`, `i16`, and `bf16` cases now route through the new bitwise pipeline and pass, with **no runtime assertions and no data corruption**. Passing = byte-exact parity with the CPU reference across all three types.
+- **Primary:** `test-backend-ops.exe -o REPEAT` → all `i32`, `i16`, and `bf16` cases now route through the new bitwise pipeline and pass (18/18, up from 10/10), with **no runtime assertions and no data corruption**. Passing = byte-exact parity with the CPU reference across all three types.
 - **Regression:** full `test-backend-ops.exe` (no `-o`) → **13,000 / 13,000 tests passed**, clean, no regressions in the ops that share the `bin_bcast` machinery (`ADD`, `SUB`, `MUL`, `DIV`).
 
 ## Implementation Notes
@@ -117,13 +118,25 @@ The op is verified through ggml's built-in backend test harness, which auto-comp
 
 ## Pull Request
 
-*(Pending — implemented and tested locally; PR not yet submitted.)*
+**PR Link:** [ggml-org/llama.cpp#26642](https://github.com/ggml-org/llama.cpp/pull/26642)
+**Title:** Support i32, i16, and bf16 for GGML_OP_REPEAT on CUDA
+**Branch:** `Ssamdeman:cuda-repeat-types` → `ggml-org:master`
+**Diff:** 2 files changed (+386 / −3), single commit, DCO signed-off.
 
-- PR title convention: `CUDA: add i32/i16/bf16 support to REPEAT` (or lowercase `cuda : ...`).
-- Docs (`docs/ops.md`, `docs/ops/CUDA.csv`) will **not** be included, per @am17an's guidance in Contribution #1.
-- AI-usage disclosure will be written first-person and honest: I authored the code; AI assisted with architecture explanation, layout verification, and debugging my own code.
-- DCO sign-off (`-s`) will be added if the DCO check goes red.
-- Rebase on upstream immediately before opening the PR, then keep the branch rebased throughout review.
+**Summary:** Adds CUDA support for `i32`, `i16`, and `bf16` in `GGML_OP_REPEAT` by introducing a separate bitwise broadcast pipeline that moves raw bytes instead of routing non-float data through the float arithmetic stack. Passes all `REPEAT` cases (18/18) and the full regression suite (13,000/13,000).
+
+**AI-usage disclosure (as submitted):** Declared **YES** — AI was used assistively to read and understand the existing code, and to help troubleshoot specific bugs during compiling and testing. I authored the implementation myself.
+
+**Automated checks (at submission):**
+- Pull Request Labeler → passed; `ggml` and `CUDA` labels applied automatically.
+- CI workflows → awaiting maintainer approval (standard for a non-write-access contributor; workflows do not auto-run on first-time external PRs).
+- No AI-disclosure bot objection raised.
+
+**Maintainer Feedback (Round 1 — @am17an, contributor):**
+- @am17an noted that extending the repeat kernel to more types doesn't fit cleanly into the existing `f32 -> (f32, f32)` regime, and suggested creating a separate path that operates on bytes.
+- This is directionally aligned with the byte-based approach already implemented (the `uint32_t` / `uint16_t` bitwise pipeline). **Response in progress** — I'll reply per-thread confirming the byte-operating design and clarifying how the current diff already separates the bitwise path from the float arithmetic path, adjusting the structure if the reviewer wants a cleaner separation.
+
+**Status:** Open, under review — awaiting the 2 required approving reviews. First maintainer comment received; response and any requested changes to follow within 24h.
 
 ## Learnings & Reflections
 
@@ -131,7 +144,7 @@ The op is verified through ggml's built-in backend test harness, which auto-comp
 
 **Hardest part.** Not the design — which matched the plan — but the NVCC template quirks during compilation: the argument-slot misalignment and the C++17 `auto` workaround, both of which produce confusing error messages that point away from the real cause.
 
-**Carry-forward from Contribution #1.** My first PR earned two approvals but was superseded by a parallel implementation that merged first. The process changes I applied here: (1) searched open **and** merged PRs for the exact op before starting, (2) chose a bounded, lower-collision op over a large new kernel, and (3) will rebase on upstream immediately before submitting and throughout review. This contribution is the test of whether those changes produce a cleaner outcome.
+**Carry-forward from Contribution #1.** My first PR earned two approvals but was superseded by a parallel implementation that merged first. The process changes I applied here: (1) searched open **and** merged PRs for the exact op before starting, (2) chose a bounded, lower-collision op over a large new kernel, and (3) rebased on upstream immediately before submitting. This contribution is the test of whether those changes produce a cleaner outcome — the review cycle is now underway.
 
 ### Resources Used
 - llama.cpp `test-backend-ops` harness and its `support --output csv` mode (ground-truth op support)
